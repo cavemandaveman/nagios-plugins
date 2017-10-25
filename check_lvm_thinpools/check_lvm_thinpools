@@ -1,0 +1,58 @@
+#!/bin/sh
+
+usage() {
+  echo "Usage: $0 [-w <warning threshold>] [-c <critical threshold>]" 1>&2;
+}
+
+while getopts ":w:c:h" opt; do
+  case $opt in
+    w)
+      warn_threshold=$OPTARG >&2
+      ;;
+    c)
+      crit_threshold=$OPTARG >&2
+      ;;
+    h)
+      usage >&2
+      exit 3
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 3
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 3
+      ;;
+  esac
+done
+
+if [[ $OPTIND = 1 ]]; then
+  usage
+  exit 3;
+fi
+
+warn=false
+crit=false
+
+lvs_output=( $(lvs --noheadings --separator ":" -o lv_name,data_percent -S "data_percent >= 0") )
+
+for i in ${lvs_output[@]}; do
+  thinpool_name=$(cut -d ':' -f 1 <<< $i)
+  thinpool_data=$(cut -d ':' -f 2 <<< $i)
+  if [[ "$thinpool_data" > "$warn_threshold" ]]; then
+    warn=true
+  fi
+  if [[ "$thinpool_data" > "$crit_threshold" ]]; then
+    crit=true
+  fi
+  echo "$thinpool_name: $thinpool_data%"
+done
+
+if $crit; then
+  exit 2;
+elif $warn; then
+  exit 1;
+else
+  exit 0;
+fi
