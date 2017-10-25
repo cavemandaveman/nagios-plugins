@@ -40,10 +40,10 @@ lvs_output=( $(lvs --noheadings --separator ":" -o lv_name,data_percent -S "data
 for i in ${lvs_output[@]}; do
   thinpool_name=$(cut -d ':' -f 1 <<< $i)
   thinpool_data=$(cut -d ':' -f 2 <<< $i)
-  if [[ "$thinpool_data" > "$warn_threshold" ]]; then
+  if [[ $(bc <<< "$thinpool_data >= $warn_threshold") = 1 ]]; then
     warn=true
   fi
-  if [[ "$thinpool_data" > "$crit_threshold" ]]; then
+  if [[ $(bc <<< "$thinpool_data >= $crit_threshold") = 1 ]]; then
     crit=true
   fi
   echo "$thinpool_name: $thinpool_data%"
