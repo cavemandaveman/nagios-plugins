@@ -1,10 +1,10 @@
 #!/bin/sh
 
 usage() {
-  echo "Usage: $0 [-w <warning threshold>] [-c <critical threshold>]" 1>&2;
+  echo "Usage: $0 [-w <warning threshold>] [-c <critical threshold>] [-f <file with lvs output>]" 1>&2;
 }
 
-while getopts ":w:c:h" opt; do
+while getopts ":w:c:f:h" opt; do
   case $opt in
     w)
       warn_threshold=$OPTARG >&2
