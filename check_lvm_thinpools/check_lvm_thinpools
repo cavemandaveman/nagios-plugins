@@ -12,6 +12,9 @@ while getopts ":w:c:h" opt; do
     c)
       crit_threshold=$OPTARG >&2
       ;;
+    f)
+      lvs_output=$(cat $OPTARG) >&2
+      ;;
     h)
       usage >&2
       exit 3
@@ -35,7 +38,9 @@ fi
 warn=false
 crit=false
 
-lvs_output=( $(lvs --noheadings --separator ":" -o lv_name,data_percent -S "data_percent >= 0") )
+if [[ -z $lvs_output ]]; then
+  lvs_output=( $(lvs --noheadings --separator ":" -o lv_name,data_percent -S "data_percent >= 0") )
+fi
 
 for i in ${lvs_output[@]}; do
   thinpool_name=$(cut -d ':' -f 1 <<< $i)
