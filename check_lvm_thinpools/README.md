@@ -12,4 +12,4 @@ A plugin for checking the size of an LVM thinpool
 
 ## Notes
 This script utilizes the `lvs` command, which requires root privileges. However, if you want to avoid allowing the nagios user to have root permissions, you can have the script read from a file.
-For example, set a cronjob that runs every so often and writes the output of `lvs --noheadings --separator ":" -o lv_name,data_percent -S "data_percent >= 1` to a file. Then, have this script read from that file with the `-f` argument.
+For example, set a cronjob that runs every so often and writes the output of `lvs --noheadings --separator ":" -o lv_name,data_percent -S "data_percent >= 0` to a file. Then, have this script read from that file with the `-f` argument.
