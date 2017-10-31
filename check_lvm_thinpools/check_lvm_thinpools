@@ -1,63 +1,88 @@
-#!/bin/sh
+#!/bin/bash
 
-usage() {
-  echo "Usage: $0 [-w <warning threshold>] [-c <critical threshold>] [-f <file with lvs output>]" 1>&2;
+set -e
+
+function func_help {
+  echo -e "This script will check LVM thinpool disk utilization of a remote machine via SNMPv3.
+It requires all of the following options to be defined.
+
+       -u  SNMPv3 read-only user
+       -a  Auth protocol (sha or md5)
+       -A  Auth password
+       -P  Priv password
+       -H  Hostname or IP to check against
+       -w  Warning threshold
+       -c  Critical threshold\n"
+  exit 3
 }
 
-while getopts ":w:c:f:h" opt; do
-  case $opt in
+if [ $# -lt 7 ]; then
+  func_help
+fi
+
+while getopts :u:a:A:P:H:w:c:h FLAG; do
+  case $FLAG in
+    u)
+      snmpv3_user=$OPTARG
+      ;;
+    a)
+      snmpv3_auth_protocol=$OPTARG
+      ;;
+    A)
+      snmpv3_auth_pw=$OPTARG
+      ;;
+    P)
+      snmpv3_priv_pw=$OPTARG
+      ;;
+    H)
+      host=$OPTARG
+      ;;
     w)
-      warn_threshold=$OPTARG >&2
+      warn_threshold=$OPTARG
       ;;
     c)
-      crit_threshold=$OPTARG >&2
-      ;;
-    f)
-      lvs_output=$(cat $OPTARG) >&2
+      crit_threshold=$OPTARG
       ;;
     h)
-      usage >&2
-      exit 3
+      func_help
       ;;
     \?)
-      echo "Invalid option: -$OPTARG" >&2
-      exit 3
-      ;;
-    :)
-      echo "Option -$OPTARG requires an argument." >&2
+      echo -e "Option -$OPTARG not allowed.\n"
+      func_help
       exit 3
       ;;
   esac
 done
 
-if [[ $OPTIND = 1 ]]; then
-  usage
-  exit 3;
-fi
+net_snmp_extension=\"check_lvm_thinpools\"
+lvs_output=( $(/usr/bin/snmpwalk -v3 -On -u $snmpv3_user -l AuthPriv -a $snmpv3_auth_protocol -A $snmpv3_auth_pw -X $snmpv3_priv_pw $host "NET-SNMP-EXTEND-MIB::nsExtendOutputFull.$net_snmp_extension" | /usr/bin/cut -d ' ' -f4) )
 
 warn=false
 crit=false
 
-if [[ -z $lvs_output ]]; then
-  lvs_output=( $(lvs --noheadings --separator ":" -o lv_name,data_percent -S "data_percent >= 0") )
-fi
-
-for i in ${lvs_output[@]}; do
+for i in "${lvs_output[@]}"; do
   thinpool_name=$(cut -d ':' -f 1 <<< $i)
   thinpool_data=$(cut -d ':' -f 2 <<< $i)
+  if ! egrep -q '^\-?[0-9]*\.?[0-9]+$' <<< $thinpool_data; then
+    echo "UNKNOWN - Something went wrong checking thinpools"
+    exit 3
+  fi
   if [[ $(bc <<< "$thinpool_data >= $warn_threshold") = 1 ]]; then
     warn=true
   fi
   if [[ $(bc <<< "$thinpool_data >= $crit_threshold") = 1 ]]; then
     crit=true
   fi
-  echo "$thinpool_name: $thinpool_data%"
+  output+="$thinpool_name: $thinpool_data% "
 done
 
 if $crit; then
-  exit 2;
+  echo "CRITICAL - $output"
+  exit 2
 elif $warn; then
-  exit 1;
+  echo "WARN - $output"
+  exit 1
 else
-  exit 0;
+  echo "OK - $output"
+  exit 0
 fi
