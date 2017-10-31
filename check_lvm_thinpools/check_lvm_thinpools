@@ -13,11 +13,11 @@ It requires all of the following options to be defined.
        -H  Hostname or IP to check against
        -w  Warning threshold
        -c  Critical threshold\n"
-  exit 3
 }
 
 if [ $# -lt 7 ]; then
   func_help
+  exit 3
 fi
 
 while getopts :u:a:A:P:H:w:c:h FLAG; do
@@ -45,6 +45,7 @@ while getopts :u:a:A:P:H:w:c:h FLAG; do
       ;;
     h)
       func_help
+      exit 3
       ;;
     \?)
       echo -e "Option -$OPTARG not allowed.\n"
