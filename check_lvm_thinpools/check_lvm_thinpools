@@ -15,12 +15,12 @@ It requires all of the following options to be defined.
        -c  Critical threshold\n"
 }
 
-if [ $# -lt 7 ]; then
+if [[ $# -ne 14 ]]; then
   func_help
-  exit 3
+  exit 3;
 fi
 
-while getopts :u:a:A:P:H:w:c:h FLAG; do
+while getopts ":u:a:A:P:H:w:c:h" FLAG; do
   case $FLAG in
     u)
       snmpv3_user=$OPTARG
@@ -48,8 +48,12 @@ while getopts :u:a:A:P:H:w:c:h FLAG; do
       exit 3
       ;;
     \?)
-      echo -e "Option -$OPTARG not allowed.\n"
+      echo "Option -$OPTARG not allowed."
       func_help
+      exit 3
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument."
       exit 3
       ;;
   esac
